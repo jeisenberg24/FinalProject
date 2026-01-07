@@ -15,6 +15,12 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    // Allow login page to render immediately without waiting for auth
+    if (pathname === "/login") {
+      setIsReady(true);
+      return;
+    }
+
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);

@@ -17,10 +17,10 @@ export default function LoginPage() {
     }
   }, [isLoggedIn, isLoading, router]);
 
-  // Automatically redirect to Google sign-in immediately on page load
+  // Automatically redirect to Google sign-in IMMEDIATELY on page load
+  // Don't wait for auth state to load
   useEffect(() => {
-    // Only redirect if we haven't already and we're not logged in
-    if (!hasRedirected.current && !isLoggedIn) {
+    if (!hasRedirected.current) {
       hasRedirected.current = true;
       
       // Create supabase client directly for immediate redirect
@@ -29,7 +29,7 @@ export default function LoginPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
       
-      // Trigger OAuth redirect immediately
+      // Trigger OAuth redirect immediately - don't wait for anything
       supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -37,11 +37,10 @@ export default function LoginPage() {
         },
       }).catch((error) => {
         console.error("Error initiating Google sign-in:", error);
-        // If redirect fails, allow fallback to login form
         hasRedirected.current = false;
       });
     }
-  }, [isLoggedIn]);
+  }, []); // Empty dependency array = run immediately on mount
 
   // Show minimal loading state while redirecting
   return (
