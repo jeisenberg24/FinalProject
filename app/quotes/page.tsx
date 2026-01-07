@@ -90,14 +90,16 @@ export default function QuotesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">My Quotes</h1>
-          <p className="text-muted-foreground">
-            View and manage all your saved quotes
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">My Quotes</h1>
+              <p className="text-gray-600">
+                View and manage all your saved quotes
+              </p>
+            </div>
         <Link href="/quote/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
@@ -157,6 +159,8 @@ export default function QuotesPage() {
           ))}
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

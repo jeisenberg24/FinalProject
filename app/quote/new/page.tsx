@@ -66,14 +66,18 @@ export default function NewQuotePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Create New Quote</h1>
-        <p className="text-muted-foreground">
-          Fill in the details below to generate an accurate service quote
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Create New Quote</h1>
+            <p className="text-gray-600">
+              Fill in the details below to generate an accurate service quote
+            </p>
+          </div>
+          <QuoteForm onSave={handleSave} />
+        </div>
       </div>
-      <QuoteForm onSave={handleSave} />
     </div>
   );
 }

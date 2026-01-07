@@ -47,13 +47,15 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Profile Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account information and preferences
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
+            <p className="text-gray-600">
+              Manage your account information and preferences
+            </p>
+          </div>
 
       <Card>
         <CardHeader>
@@ -92,6 +94,8 @@ export default function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

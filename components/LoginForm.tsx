@@ -1,10 +1,15 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { LogIn, Mail, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const LoginForm = () => {
+  const router = useRouter();
   const {
     email,
     password,
@@ -17,7 +22,15 @@ const LoginForm = () => {
     isSignUpMode,
     setIsSignUpMode,
     clearError,
+    isLoggedIn,
   } = useAuth();
+
+  // Redirect to homepage after successful login
+  useEffect(() => {
+    if (isLoggedIn) {
+      router.push("/");
+    }
+  }, [isLoggedIn, router]);
 
   const toggleMode = () => {
     setIsSignUpMode(!isSignUpMode);

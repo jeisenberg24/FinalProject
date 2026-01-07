@@ -1,11 +1,12 @@
+"use client";
+
 import { useAuth } from "@/hooks/useAuth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LoadingSkeleton } from "./LoadingSkeleton";
 
-const PUBLIC_ROUTES = ["/"];
-const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";
-const DEFAULT_PUBLIC_ROUTE = "/";
+const PUBLIC_ROUTES = ["/", "/login"];
+const PROTECTED_ROUTES = ["/quotes", "/dashboard", "/profile", "/quote/new"];
 
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, isLoading } = useAuth();
@@ -17,14 +18,17 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+    const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
 
-    if (isLoggedIn && pathname === DEFAULT_PUBLIC_ROUTE) {
-      router.replace(DEFAULT_AUTHENTICATED_ROUTE);
-    } else if (!isLoggedIn && !isPublicRoute) {
-      router.replace(DEFAULT_PUBLIC_ROUTE);
-    } else {
-      setIsReady(true);
+    // If not logged in and trying to access protected route, redirect to login
+    if (!isLoggedIn && isProtectedRoute) {
+      router.replace("/login");
+      return;
     }
+
+    // Allow everyone (logged in or not) to access public routes like homepage (/)
+    // Allow logged-in users to access protected routes
+    setIsReady(true);
   }, [isLoggedIn, isLoading, pathname, router]);
 
   if (!isReady) return <LoadingSkeleton />;
