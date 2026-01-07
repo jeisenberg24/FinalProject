@@ -16,7 +16,7 @@ import { ArrowLeft } from "lucide-react";
 export default function QuoteDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createBrowserClient(
@@ -25,7 +25,14 @@ export default function QuoteDetailPage() {
   );
 
   useEffect(() => {
-    if (!isLoggedIn || !user) return;
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // If not logged in, stop loading
+    if (!isLoggedIn || !user) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchQuote = async () => {
       try {
@@ -46,7 +53,7 @@ export default function QuoteDetailPage() {
     };
 
     fetchQuote();
-  }, [params.id, isLoggedIn, user]);
+  }, [params.id, isLoggedIn, user, authLoading]);
 
   if (!isLoggedIn) {
     return <div>Please log in to view this quote.</div>;

@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 
 export default function QuotesPage() {
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createBrowserClient(
@@ -20,7 +20,14 @@ export default function QuotesPage() {
   );
 
   useEffect(() => {
-    if (!isLoggedIn || !user) return;
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // If not logged in, stop loading
+    if (!isLoggedIn || !user) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchQuotes = async () => {
       try {
@@ -40,7 +47,7 @@ export default function QuotesPage() {
     };
 
     fetchQuotes();
-  }, [isLoggedIn, user]);
+  }, [isLoggedIn, user, authLoading]);
 
   if (!isLoggedIn) {
     return <div>Please log in to view your quotes.</div>;
