@@ -14,7 +14,7 @@ import { ArrowLeft, Crown, Check } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, isLoggedIn } = useAuth();
-  const { subscription, isLoading: isLoadingSubscription } = useSubscription(user?.id);
+  const { subscription, isLoading: isLoadingSubscription, refetch: refetchSubscription } = useSubscription(user?.id);
   const { toast } = useToast();
   const [companyName, setCompanyName] = useState(user?.company_name || "");
   const [experienceLevel, setExperienceLevel] = useState(user?.experience_level || "Intermediate");
@@ -39,31 +39,36 @@ export default function ProfilePage() {
       
       // Poll for subscription update (webhook may take a few seconds)
       let pollCount = 0;
-      const maxPolls = 10; // Poll for up to 10 seconds
+      const maxPolls = 20; // Poll for up to 20 seconds (webhooks can take time)
       const pollInterval = setInterval(async () => {
         pollCount++;
         if (user) {
+          // Refetch subscription data
+          await refetchSubscription();
+          
+          // Check if subscription was updated
           const { data } = await supabase
             .from("subscriptions")
             .select("*")
             .eq("user_id", user.id)
             .single();
           
-          if (data && data.tier === "pro" && data.status === "active") {
+          // Accept both "active" and "trialing" as valid subscription statuses
+          if (data && data.tier === "pro" && (data.status === "active" || data.status === "trialing")) {
             clearInterval(pollInterval);
             toast({
               variant: "success",
               title: "Subscription Activated!",
               description: "Welcome to Pro! Your premium features are now available.",
             });
-            // Force a page refresh to update the UI
-            window.location.reload();
+            // Refetch to update the UI immediately
+            await refetchSubscription();
           } else if (pollCount >= maxPolls) {
             clearInterval(pollInterval);
             toast({
               variant: "default",
               title: "Processing...",
-              description: "Your subscription is being processed. Please refresh the page in a moment.",
+              description: "Your subscription is being processed. If it doesn't update soon, please refresh the page or contact support.",
             });
           }
         }
@@ -82,7 +87,7 @@ export default function ProfilePage() {
       // Clean up URL
       window.history.replaceState({}, "", "/profile");
     }
-  }, [user, supabase, toast]);
+  }, [user, supabase, toast, refetchSubscription]);
 
   // Handle upgrade to Pro
   const handleUpgrade = async () => {
@@ -164,6 +169,26 @@ export default function ProfilePage() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRefreshSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      await refetchSubscription();
+      toast({
+        variant: "success",
+        title: "Subscription refreshed",
+        description: "Your subscription status has been updated.",
+      });
+    } catch (error: any) {
+      console.error("Error refreshing subscription:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh subscription. Please try again.",
+      });
     }
   };
 
@@ -251,9 +276,9 @@ export default function ProfilePage() {
                   <span className="text-lg font-semibold capitalize">
                     {subscription?.tier || "Free"}
                   </span>
-                  {subscription?.status === "active" && subscription?.tier !== "free" && (
+                  {(subscription?.status === "active" || subscription?.status === "trialing") && subscription?.tier !== "free" && (
                     <span className="px-2 py-1 text-xs bg-green-500/20 text-green-600 rounded-full">
-                      Active
+                      {subscription?.status === "trialing" ? "Trialing" : "Active"}
                     </span>
                   )}
                 </div>
@@ -302,13 +327,25 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {subscription?.tier === "pro" && subscription?.status === "active" && (
+              {subscription?.tier === "pro" && (subscription?.status === "active" || subscription?.status === "trialing") && (
                 <div className="pt-4 border-t">
                   <p className="text-sm text-muted-foreground mb-2">
                     You&apos;re currently on the Pro plan. Thank you for your subscription!
                   </p>
                   <Button variant="outline" className="w-full" disabled>
                     Manage Subscription
+                  </Button>
+                </div>
+              )}
+
+              {(subscription?.tier === "free" || !subscription) && (
+                <div className="pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={handleRefreshSubscription}
+                    className="w-full"
+                  >
+                    Refresh Subscription Status
                   </Button>
                 </div>
               )}

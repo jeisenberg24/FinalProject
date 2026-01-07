@@ -27,3 +27,4 @@ create policy "Users can delete own PDFs"
     (storage.foldername(name))[1] = auth.uid()::text
   );
 
+

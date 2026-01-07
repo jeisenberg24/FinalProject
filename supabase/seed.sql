@@ -6,3 +6,4 @@
 -- VALUES ('00000000-0000-0000-0000-000000000000', 'Test Company', 'Intermediate')
 -- ON CONFLICT (user_id) DO NOTHING;
 
+

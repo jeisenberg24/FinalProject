@@ -57,3 +57,4 @@ create trigger update_profiles_updated_at
   before update on public.profiles
   for each row execute procedure public.handle_updated_at();
 
+

@@ -55,3 +55,4 @@ create trigger update_quotes_updated_at
 create index quotes_user_id_idx on public.quotes(user_id);
 create index quotes_created_at_idx on public.quotes(created_at desc);
 
+

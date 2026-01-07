@@ -36,3 +36,4 @@ create policy "Users can insert own quote history"
 create index quote_history_quote_id_idx on public.quote_history(quote_id);
 create index quote_history_created_at_idx on public.quote_history(created_at desc);
 
+

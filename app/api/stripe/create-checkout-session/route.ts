@@ -132,6 +132,27 @@ export async function POST(request: NextRequest) {
     // Create checkout session
     const priceId = process.env.STRIPE_PRO_PRICE_ID!;
 
+    // Get the base URL from environment variable or request headers
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    
+    if (!baseUrl) {
+      // Try to get from request headers (more reliable in Next.js)
+      const host = request.headers.get("host");
+      const protocol = request.headers.get("x-forwarded-proto") || 
+                      (request.headers.get("referer")?.startsWith("https") ? "https" : "http");
+      
+      if (host) {
+        baseUrl = `${protocol}://${host}`;
+      }
+    }
+    
+    // Fallback to localhost if still not set
+    if (!baseUrl) {
+      baseUrl = "http://localhost:3000";
+    }
+    
+    baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
@@ -142,8 +163,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/profile?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/profile?canceled=true`,
+      success_url: `${baseUrl}/profile?success=true`,
+      cancel_url: `${baseUrl}/profile?canceled=true`,
       metadata: {
         userId: userId,
         tier: "pro",

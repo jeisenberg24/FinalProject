@@ -34,3 +34,4 @@ create trigger update_subscriptions_updated_at
 create index subscriptions_user_id_idx on public.subscriptions(user_id);
 create index subscriptions_stripe_subscription_id_idx on public.subscriptions(stripe_subscription_id);
 
+
