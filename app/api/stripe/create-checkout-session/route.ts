@@ -4,12 +4,49 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
-});
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate environment variables
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error("STRIPE_SECRET_KEY is not set");
+      return NextResponse.json(
+        { error: "Stripe configuration error. Please contact support." },
+        { status: 500 }
+      );
+    }
+
+    if (!process.env.STRIPE_PRO_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID === "price_placeholder") {
+      console.error("STRIPE_PRO_PRICE_ID is not set or is placeholder");
+      return NextResponse.json(
+        { error: "Stripe price ID not configured. Please contact support." },
+        { status: 500 }
+      );
+    }
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("SUPABASE_SERVICE_ROLE_KEY is not set");
+      return NextResponse.json(
+        { error: "Server configuration error. Please contact support." },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Stripe client
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-02-24.acacia",
+    });
+
     // Get authenticated user from session
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -93,9 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checkout session
-    // Note: You'll need to create a price in Stripe Dashboard and set the price ID
-    // For now, using a placeholder - replace with your actual price ID
-    const priceId = process.env.STRIPE_PRO_PRICE_ID || "price_placeholder";
+    const priceId = process.env.STRIPE_PRO_PRICE_ID!;
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

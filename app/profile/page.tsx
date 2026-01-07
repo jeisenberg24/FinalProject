@@ -59,6 +59,8 @@ export default function ProfilePage() {
 
   // Handle success/cancel query parameters
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "true") {
       toast({
@@ -110,6 +112,14 @@ export default function ProfilePage() {
           "Content-Type": "application/json",
         },
       });
+
+      // Check if response is actually JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Non-JSON response:", text.substring(0, 200));
+        throw new Error("Server returned an invalid response. Please check your configuration.");
+      }
 
       const data = await response.json();
 
@@ -304,7 +314,7 @@ export default function ProfilePage() {
               {subscription?.tier === "pro" && subscription?.status === "active" && (
                 <div className="pt-4 border-t">
                   <p className="text-sm text-muted-foreground mb-2">
-                    You're currently on the Pro plan. Thank you for your subscription!
+                    You&apos;re currently on the Pro plan. Thank you for your subscription!
                   </p>
                   <Button variant="outline" className="w-full" disabled>
                     Manage Subscription
