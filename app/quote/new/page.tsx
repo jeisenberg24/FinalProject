@@ -21,6 +21,35 @@ export default function NewQuotePage() {
     }
 
     try {
+      // Ensure profile exists before inserting quote
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .single();
+
+      // If profile doesn't exist, create it
+      if (profileError && profileError.code === "PGRST116") {
+        const { error: createProfileError } = await supabase
+          .from("profiles")
+          .insert({
+            user_id: user.id,
+            experience_level: "Intermediate",
+          });
+
+        if (createProfileError) {
+          throw new Error(`Failed to create profile: ${createProfileError.message}`);
+        }
+      } else if (profileError) {
+        throw new Error(`Failed to check profile: ${profileError.message}`);
+      }
+
+      // Get current session to ensure auth is set
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("No active session. Please log in again.");
+      }
+
       const { data, error } = await supabase
         .from("quotes")
         .insert({
@@ -46,18 +75,31 @@ export default function NewQuotePage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Quote insert error:", error);
+        throw error;
+      }
 
-      // Create history entry
-      await supabase.from("quote_history").insert({
+      if (!data) {
+        throw new Error("Quote was created but no data was returned");
+      }
+
+      // Create history entry (non-blocking - don't fail if this fails)
+      const { error: historyError } = await supabase.from("quote_history").insert({
         quote_id: data.id,
         action: "created",
       });
 
+      if (historyError) {
+        console.warn("Failed to create history entry:", historyError);
+        // Don't throw - quote was created successfully
+      }
+
+      // Navigate to the quote detail page
       router.push(`/quotes/${data.id}`);
     } catch (error: any) {
       console.error("Error saving quote:", error);
-      alert("Failed to save quote: " + error.message);
+      alert("Failed to save quote: " + (error.message || "Unknown error"));
     }
   };
 
