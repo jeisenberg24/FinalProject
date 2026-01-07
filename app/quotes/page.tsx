@@ -93,23 +93,23 @@ export default function QuotesPage() {
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          <div className="flex justify-between items-center bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100">
+          <div className="flex justify-between items-center bg-card rounded-2xl p-6 shadow-lg border border-border">
             <div className="flex items-center gap-4">
               <Link href="/dashboard">
-                <Button variant="outline" size="sm" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                <Button variant="outline" size="sm">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to Dashboard
                 </Button>
               </Link>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">My Quotes</h1>
-                <p className="text-slate-600 text-lg">
+                <h1 className="text-4xl font-bold text-primary">My Quotes</h1>
+                <p className="text-muted-foreground text-lg">
                   View and manage all your saved quotes
                 </p>
               </div>
             </div>
             <Link href="/quote/new">
-              <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md">
+              <Button>
                 <Plus className="mr-2 h-4 w-4" />
                 New Quote
               </Button>
@@ -117,22 +117,22 @@ export default function QuotesPage() {
           </div>
 
       {error && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive bg-destructive/10">
           <CardContent className="py-4">
-            <p className="text-red-800 text-sm">Error: {error}</p>
+            <p className="text-destructive text-sm font-semibold">Error: {error}</p>
           </CardContent>
         </Card>
       )}
 
       {quotes.length === 0 ? (
-        <Card className="bg-white/90 backdrop-blur-sm border-blue-100 shadow-md">
+        <Card className="shadow-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-16 w-16 text-blue-400 mb-4" />
-            <p className="text-slate-600 mb-4 text-lg">
+            <FileText className="h-16 w-16 text-primary mb-4" />
+            <p className="text-muted-foreground mb-4 text-lg">
               {error ? "Failed to load quotes" : "No quotes yet"}
             </p>
             <Link href="/quote/new">
-              <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md">
+              <Button>
                 Create Your First Quote
               </Button>
             </Link>
@@ -141,24 +141,24 @@ export default function QuotesPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {quotes.map((quote) => (
-            <Card key={quote.id} className="card-hover border-blue-100 bg-white/90 backdrop-blur-sm shadow-md">
+            <Card key={quote.id} className="card-hover shadow-md">
               <CardHeader>
-                <CardTitle className="text-lg text-blue-900">{quote.service_type}</CardTitle>
-                <CardDescription className="text-slate-600">
+                <CardTitle className="text-lg text-card-foreground">{quote.service_type}</CardTitle>
+                <CardDescription>
                   {quote.location} • {new Date(quote.created_at).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  <div className="text-3xl font-bold text-primary">
                     {formatCurrency(quote.calculated_price)}
                   </div>
-                  <div className="text-sm text-slate-600">
+                  <div className="text-sm text-muted-foreground">
                     Range: {formatCurrency(quote.price_range_min)} - {formatCurrency(quote.price_range_max)}
                   </div>
                   <div className="flex gap-2 mt-4">
                     <Link href={`/quotes/${quote.id}`} className="flex-1">
-                      <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300" size="sm">
+                      <Button variant="outline" className="w-full" size="sm">
                         View
                       </Button>
                     </Link>

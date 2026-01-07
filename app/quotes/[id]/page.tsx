@@ -95,7 +95,7 @@ export default function QuoteDetailPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Quote Details</h1>
+          <h1 className="text-3xl font-bold text-foreground">Quote Details</h1>
           <p className="text-muted-foreground">
             Created: {new Date(quote.created_at).toLocaleString()}
           </p>

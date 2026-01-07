@@ -17,65 +17,65 @@ export default function Dashboard() {
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-8">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">Dashboard</h1>
-            <p className="text-slate-600 text-lg">
+          <div className="bg-card rounded-2xl p-6 shadow-lg border border-border">
+            <h1 className="text-4xl font-bold text-primary mb-2">Dashboard</h1>
+            <p className="text-muted-foreground text-lg">
               Welcome back{user?.email ? `, ${user.email.split('@')[0]}` : ""}! 👋
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="card-hover border-blue-100 bg-white/90 backdrop-blur-sm shadow-md">
+            <Card className="card-hover shadow-md">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-700">
-                  <Calculator className="w-6 h-6 text-blue-600" />
+                <CardTitle className="flex items-center gap-2 text-card-foreground">
+                  <Calculator className="w-6 h-6 text-primary" />
                   New Quote
                 </CardTitle>
-                <CardDescription className="text-slate-600">
+                <CardDescription>
                   Create a new service quote
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Link href="/quote/new">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md">
+                  <Button className="w-full">
                     Create Quote
                   </Button>
                 </Link>
               </CardContent>
             </Card>
 
-            <Card className="card-hover border-indigo-100 bg-white/90 backdrop-blur-sm shadow-md">
+            <Card className="card-hover shadow-md">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-indigo-700">
-                  <FileText className="w-6 h-6 text-indigo-600" />
+                <CardTitle className="flex items-center gap-2 text-card-foreground">
+                  <FileText className="w-6 h-6 text-primary" />
                   My Quotes
                 </CardTitle>
-                <CardDescription className="text-slate-600">
+                <CardDescription>
                   View and manage your saved quotes
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Link href="/quotes">
-                  <Button variant="outline" className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300">
+                  <Button variant="outline" className="w-full">
                     View Quotes
                   </Button>
                 </Link>
               </CardContent>
             </Card>
 
-            <Card className="card-hover border-purple-100 bg-white/90 backdrop-blur-sm shadow-md">
+            <Card className="card-hover shadow-md">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-700">
-                  <Settings className="w-6 h-6 text-purple-600" />
+                <CardTitle className="flex items-center gap-2 text-card-foreground">
+                  <Settings className="w-6 h-6 text-primary" />
                   Settings
                 </CardTitle>
-                <CardDescription className="text-slate-600">
+                <CardDescription>
                   Manage your account settings
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Link href="/profile">
-                  <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300">
+                  <Button variant="outline" className="w-full">
                     Settings
                   </Button>
                 </Link>

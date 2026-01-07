@@ -80,7 +80,7 @@ const LoginForm = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <Mail className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+              <Mail className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
             </div>
             <div className="relative">
               <Input
@@ -93,7 +93,7 @@ const LoginForm = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <Lock className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+              <Lock className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
             </div>
             {error && (
               <div className="text-destructive text-sm text-center">{error}</div>

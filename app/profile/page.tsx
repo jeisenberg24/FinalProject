@@ -62,48 +62,47 @@ export default function ProfilePage() {
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          <div className="flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100">
+          <div className="flex items-center gap-4 bg-card rounded-2xl p-6 shadow-lg border border-border">
             <Link href="/dashboard">
-              <Button variant="outline" size="sm" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+              <Button variant="outline" size="sm">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Dashboard
               </Button>
             </Link>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Profile Settings</h1>
-              <p className="text-slate-600 text-lg">
+              <h1 className="text-4xl font-bold text-primary">Profile Settings</h1>
+              <p className="text-muted-foreground text-lg">
                 Manage your account information and preferences
               </p>
             </div>
           </div>
 
-      <Card className="bg-white/90 backdrop-blur-sm border-blue-100 shadow-md">
+      <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="text-blue-900">Account Information</CardTitle>
-          <CardDescription className="text-slate-600">Update your profile details</CardDescription>
+          <CardTitle className="text-card-foreground">Account Information</CardTitle>
+          <CardDescription>Update your profile details</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-700 font-medium">Email</Label>
-            <Input id="email" value={user?.email || ""} disabled className="bg-slate-50" />
+            <Label htmlFor="email" className="font-medium">Email</Label>
+            <Input id="email" value={user?.email || ""} disabled />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="companyName" className="text-slate-700 font-medium">Company Name</Label>
+            <Label htmlFor="companyName" className="font-medium">Company Name</Label>
             <Input
               id="companyName"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="Your company name"
-              className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="experienceLevel" className="text-slate-700 font-medium">Experience Level</Label>
+            <Label htmlFor="experienceLevel" className="font-medium">Experience Level</Label>
             <select
               id="experienceLevel"
               value={experienceLevel}
               onChange={(e) => setExperienceLevel(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-blue-200 bg-transparent px-3 py-1 text-sm shadow-sm focus:border-blue-400 focus:ring-blue-400"
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:border-ring focus:ring-ring"
             >
               <option value="Beginner">Beginner</option>
               <option value="Intermediate">Intermediate</option>
@@ -113,7 +112,7 @@ export default function ProfilePage() {
           <Button 
             onClick={handleSave} 
             disabled={isSaving}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md w-full"
+            className="w-full"
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>

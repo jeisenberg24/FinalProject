@@ -297,26 +297,26 @@ export default function NewQuotePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-white border-b shadow-sm">
+      <div className="bg-card border-b border-border shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Calculator className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">ServiceQuote Pro</h1>
+            <Calculator className="w-8 h-8 text-primary" />
+            <h1 className="text-2xl font-bold text-card-foreground">ServiceQuote Pro</h1>
           </div>
           {isLoggedIn ? (
             <div className="flex items-center gap-4">
-              <Link href="/quotes" className="text-sm text-gray-600 hover:text-gray-900">
+              <Link href="/quotes" className="text-sm text-muted-foreground hover:text-foreground">
                 My Quotes
               </Link>
-              <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
+              <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
                 Dashboard
               </Link>
             </div>
           ) : (
             <Link href="/login">
-              <Button variant="outline" size="sm" className="border-gray-300">
+              <Button variant="outline" size="sm">
                 <LogIn className="w-4 h-4 mr-2" />
                 Sign In
               </Button>
@@ -328,7 +328,7 @@ export default function NewQuotePage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Market-smart quotes in minutes</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-2">Market-smart quotes in minutes</h2>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
@@ -576,52 +576,52 @@ export default function NewQuotePage() {
               {quoteResult ? (
                 <div className="space-y-6">
                   {/* Estimated Quote */}
-                  <div className="text-center p-6 bg-blue-50 rounded-lg border-2 border-blue-200">
-                    <p className="text-sm text-gray-600 mb-2">Estimated Quote</p>
-                    <p className="text-4xl font-bold text-blue-600">
+                  <div className="text-center p-6 bg-primary/20 rounded-lg border-2 border-primary">
+                    <p className="text-sm text-muted-foreground mb-2">Estimated Quote</p>
+                    <p className="text-4xl font-bold text-primary">
                       ${quoteResult.calculatedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
 
                   {/* Price Range */}
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Price Range</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Price Range</p>
+                    <p className="text-lg font-semibold text-foreground">
                       ${quoteResult.priceRange.min.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - ${quoteResult.priceRange.max.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
 
                   {/* Validity */}
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Validity</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Validity</p>
+                    <p className="text-lg font-semibold text-foreground">
                       {quoteResult.validityDays} days
                     </p>
                   </div>
 
                   {/* Pricing Tiers */}
                   <div className="space-y-3">
-                    <h4 className="font-semibold text-gray-900">Pricing Tiers</h4>
+                    <h4 className="font-semibold text-foreground">Pricing Tiers</h4>
                     <div className="space-y-2">
-                      <div className="p-3 bg-gray-50 rounded border">
-                        <div className="font-medium text-gray-900">Basic</div>
-                        <div className="text-sm text-gray-600">Standard scheduling, essentials only</div>
-                        <div className="text-lg font-semibold text-gray-900 mt-1">
+                      <div className="p-3 bg-muted rounded border border-border">
+                        <div className="font-medium text-foreground">Basic</div>
+                        <div className="text-sm text-muted-foreground">Standard scheduling, essentials only</div>
+                        <div className="text-lg font-semibold text-foreground mt-1">
                           ${quoteResult.priceRange.min.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                       </div>
-                      <div className="p-3 bg-blue-50 rounded border border-blue-200">
-                        <div className="font-medium text-blue-900">Premium</div>
-                        <div className="text-sm text-blue-700">Priority scheduling, extended warranty</div>
-                        <div className="text-lg font-semibold text-blue-900 mt-1">
+                      <div className="p-3 bg-primary/20 rounded border border-primary">
+                        <div className="font-medium text-primary">Premium</div>
+                        <div className="text-sm text-primary/90">Priority scheduling, extended warranty</div>
+                        <div className="text-lg font-semibold text-primary mt-1">
                           ${quoteResult.calculatedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                       </div>
                       {isEmergency && (
-                        <div className="p-3 bg-red-50 rounded border border-red-200">
-                          <div className="font-medium text-red-900">Emergency</div>
-                          <div className="text-sm text-red-700">Immediate dispatch</div>
-                          <div className="text-lg font-semibold text-red-900 mt-1">
+                        <div className="p-3 bg-destructive/20 rounded border-2 border-destructive">
+                          <div className="font-medium text-destructive">Emergency</div>
+                          <div className="text-sm text-destructive font-semibold">Immediate dispatch</div>
+                          <div className="text-lg font-semibold text-destructive mt-1">
                             ${quoteResult.calculatedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                         </div>
@@ -630,76 +630,76 @@ export default function NewQuotePage() {
                   </div>
 
                   {/* Breakdown */}
-                  <div className="space-y-2 pt-4 border-t">
-                    <h4 className="font-semibold text-gray-900">Breakdown</h4>
+                  <div className="space-y-2 pt-4 border-t border-border">
+                    <h4 className="font-semibold text-foreground">Breakdown</h4>
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Base Price:</span>
-                        <span className="font-medium">${quoteResult.breakdown.basePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="text-muted-foreground">Base Price:</span>
+                        <span className="font-medium text-foreground">${quoteResult.breakdown.basePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       {quoteResult.breakdown.marketAdjustment !== 0 && (
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-muted-foreground">
                           <span>Market Adjustment:</span>
                           <span>${quoteResult.breakdown.marketAdjustment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {quoteResult.breakdown.complexityAdjustment !== 0 && (
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-muted-foreground">
                           <span>Complexity:</span>
                           <span>${quoteResult.breakdown.complexityAdjustment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {quoteResult.breakdown.emergencyPremium > 0 && (
-                        <div className="flex justify-between text-red-600">
+                        <div className="flex justify-between text-destructive font-semibold">
                           <span>Emergency Premium:</span>
                           <span>+${quoteResult.breakdown.emergencyPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {quoteResult.breakdown.travelCost > 0 && (
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-muted-foreground">
                           <span>Travel Cost:</span>
                           <span>+${quoteResult.breakdown.travelCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {quoteResult.breakdown.seasonalAdjustment !== 0 && (
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-muted-foreground">
                           <span>Seasonal Adjustment:</span>
                           <span>${quoteResult.breakdown.seasonalAdjustment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {quoteResult.breakdown.experienceAdjustment !== 0 && (
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-muted-foreground">
                           <span>Experience Adjustment:</span>
                           <span>${quoteResult.breakdown.experienceAdjustment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {materialsCost > 0 && (
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-muted-foreground">
                           <span>Materials:</span>
                           <span>${materialsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {equipmentCost > 0 && (
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-muted-foreground">
                           <span>Equipment:</span>
                           <span>${equipmentCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {quoteResult.breakdown.competitorAdjustment && quoteResult.breakdown.competitorAdjustment !== 0 && (
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-muted-foreground">
                           <span>Competitor Adjustment:</span>
                           <span>${quoteResult.breakdown.competitorAdjustment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
-                      <div className="flex justify-between font-semibold pt-2 border-t">
-                        <span>Total:</span>
-                        <span>${quoteResult.breakdown.finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <div className="flex justify-between font-semibold pt-2 border-t border-border">
+                        <span className="text-foreground">Total:</span>
+                        <span className="text-foreground">${quoteResult.breakdown.finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-muted-foreground">
                   <p>Fill in the quote inputs to see results</p>
                 </div>
               )}
@@ -709,8 +709,8 @@ export default function NewQuotePage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t mt-12 py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-gray-600">
+      <footer className="bg-card border-t border-border mt-12 py-6">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           <p>© ServiceQuote Pro</p>
         </div>
       </footer>

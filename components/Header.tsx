@@ -9,9 +9,9 @@ const Header = () => {
   const { isLoggedIn, signOut, user } = useAuth();
 
   return (
-    <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg border-b border-blue-500/20">
+    <header className="bg-primary shadow-lg border-b border-primary/50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href={"/"} className="text-xl font-bold flex items-center gap-2 text-white hover:text-blue-100 transition-colors">
+        <Link href={"/"} className="text-xl font-bold flex items-center gap-2 text-white hover:text-white/80 transition-colors">
           <Calculator className="w-7 h-7 text-white drop-shadow-md" />
           <span className="text-white font-semibold tracking-tight">Service Quote Calculator</span>
         </Link>
