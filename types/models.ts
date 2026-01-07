@@ -7,6 +7,7 @@ export interface User {
   email: string;
   company_name?: string;
   experience_level?: "Beginner" | "Intermediate" | "Expert";
+  saved_market_rate?: number;
   created_at?: string;
   updated_at?: string;
 }

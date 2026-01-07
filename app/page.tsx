@@ -1,10 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
-import { QuoteForm } from "@/components/QuoteForm";
-import { QuoteDisplay } from "@/components/QuoteDisplay";
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { calculateQuote, QuoteInput } from "@/lib/calculations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,12 +18,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Calculator, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function Home() {
-  const { isLoggedIn, isLoading: authLoading } = useAuth();
+  const { isLoggedIn, isLoading: authLoading, user } = useAuth();
   const router = useRouter();
   const [quoteResult, setQuoteResult] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isSavingMarketRate, setIsSavingMarketRate] = useState(false);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   // Form state
   const [marketRate, setMarketRate] = useState<number>(0);
@@ -44,6 +48,57 @@ export default function Home() {
   const [serviceType, setServiceType] = useState<string>("");
   const [location, setLocation] = useState<string>("");
 
+  // Load saved market rate on mount
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      loadSavedMarketRate();
+    }
+  }, [isLoggedIn, user]);
+
+  const loadSavedMarketRate = async () => {
+    if (!isLoggedIn || !user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("saved_market_rate")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!error && data?.saved_market_rate) {
+        setMarketRate(parseFloat(data.saved_market_rate.toString()));
+      }
+    } catch (error) {
+      console.error("Error loading saved market rate:", error);
+    }
+  };
+
+  const saveMarketRate = async () => {
+    if (!isLoggedIn || !user || marketRate <= 0) {
+      alert("Please enter a valid market rate to save.");
+      return;
+    }
+
+    setIsSavingMarketRate(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({
+          user_id: user.id,
+          saved_market_rate: marketRate,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      alert("Market rate saved successfully!");
+    } catch (error: any) {
+      console.error("Error saving market rate:", error);
+      alert("Failed to save market rate: " + error.message);
+    } finally {
+      setIsSavingMarketRate(false);
+    }
+  };
+
   // Redirect to login if not logged in - but wait a bit for OAuth callback to complete
   useEffect(() => {
     // Give OAuth callback time to complete (2 seconds)
@@ -56,9 +111,46 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [isLoggedIn, authLoading, router]);
 
-  // Calculate quote when inputs change
+  // Calculate quote function (can be called manually)
+  const calculateQuotePrice = () => {
+    if (marketRate > 0 && laborHours > 0) {
+      setIsCalculating(true);
+      setTimeout(() => {
+        try {
+          // Calculate base price: market rate * labor hours
+          const basePrice = marketRate * laborHours;
+          
+          const input: QuoteInput = {
+            marketRate: basePrice, // Pass the calculated base price
+            marketDemand: marketDemand === "Low" ? "Low" : marketDemand === "High" ? "High" : marketDemand === "Peak" ? "High" : "Medium",
+            serviceType: serviceType || "Service",
+            isEmergency,
+            location: location || "Location",
+            complexity: complexity === "Expert" ? "Complex" : complexity,
+            materialsCost: materialsCost > 0 ? materialsCost : undefined,
+            timeOfDay: timeOfDay === "Evening/Weekend" ? "evening" : undefined,
+            seasonalFactor: seasonalFactor === "Off-season" ? "Off-peak" : seasonalFactor === "Busy season" ? "Peak" : "Normal",
+            competitorPricing: competitorPrice,
+            experienceLevel: experienceLevel === "Entry" ? "Beginner" : experienceLevel === "Pro" ? "Expert" : experienceLevel === "Expert" ? "Expert" : "Intermediate",
+            equipmentRequirements: equipmentCost > 0 ? (equipmentCost > 100 ? "Heavy-duty" : "Specialized") : "Standard",
+            travelDistance: travelTime > 0 ? travelTime * 30 : undefined, // Convert hours to approximate miles
+          };
+          const result = calculateQuote(input);
+          setQuoteResult(result);
+        } catch (error) {
+          console.error("Error calculating quote:", error);
+        } finally {
+          setIsCalculating(false);
+        }
+      }, 300);
+    } else {
+      setQuoteResult(null);
+    }
+  };
+
+  // Auto-calculate on input change
   useEffect(() => {
-    if (marketRate > 0 && laborHours > 0 && serviceType && location) {
+    if (marketRate > 0 && laborHours > 0) {
       setIsCalculating(true);
       const timeoutId = setTimeout(() => {
         try {
@@ -68,9 +160,9 @@ export default function Home() {
           const input: QuoteInput = {
             marketRate: basePrice, // Pass the calculated base price
             marketDemand: marketDemand === "Low" ? "Low" : marketDemand === "High" ? "High" : marketDemand === "Peak" ? "High" : "Medium",
-            serviceType,
+            serviceType: serviceType || "Service",
             isEmergency,
-            location,
+            location: location || "Location",
             complexity: complexity === "Expert" ? "Complex" : complexity,
             materialsCost: materialsCost > 0 ? materialsCost : undefined,
             timeOfDay: timeOfDay === "Evening/Weekend" ? "evening" : undefined,
@@ -346,17 +438,42 @@ export default function Home() {
                 </div>
 
                 {/* Buttons */}
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-wrap gap-2 pt-4">
+                  <Button
+                    type="button"
+                    onClick={calculateQuotePrice}
+                    className="flex-1 min-w-[120px]"
+                    disabled={isCalculating}
+                  >
+                    {isCalculating ? "Calculating..." : "Calculate Quote"}
+                  </Button>
                   <Button
                     type="button"
                     onClick={handleReset}
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 min-w-[120px]"
                   >
                     Reset
                   </Button>
+                  <Button
+                    type="button"
+                    onClick={saveMarketRate}
+                    variant="outline"
+                    className="flex-1 min-w-[120px]"
+                    disabled={isSavingMarketRate || marketRate <= 0}
+                  >
+                    {isSavingMarketRate ? "Saving..." : "Save Market Rate"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={loadSavedMarketRate}
+                    variant="outline"
+                    className="flex-1 min-w-[120px]"
+                  >
+                    Load Saved
+                  </Button>
                   {isLoggedIn && (
-                    <Link href="/quote/new" className="flex-1">
+                    <Link href="/quote/new" className="flex-1 min-w-[120px]">
                       <Button variant="outline" className="w-full">
                         Save
                       </Button>
@@ -453,6 +570,24 @@ export default function Home() {
                           <span>+${quoteResult.breakdown.emergencyPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
+                      {quoteResult.breakdown.travelCost > 0 && (
+                        <div className="flex justify-between text-gray-600">
+                          <span>Travel Cost:</span>
+                          <span>+${quoteResult.breakdown.travelCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      {quoteResult.breakdown.seasonalAdjustment !== 0 && (
+                        <div className="flex justify-between text-gray-600">
+                          <span>Seasonal Adjustment:</span>
+                          <span>${quoteResult.breakdown.seasonalAdjustment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      {quoteResult.breakdown.experienceAdjustment !== 0 && (
+                        <div className="flex justify-between text-gray-600">
+                          <span>Experience Adjustment:</span>
+                          <span>${quoteResult.breakdown.experienceAdjustment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
                       {materialsCost > 0 && (
                         <div className="flex justify-between text-gray-600">
                           <span>Materials:</span>
@@ -463,6 +598,12 @@ export default function Home() {
                         <div className="flex justify-between text-gray-600">
                           <span>Equipment:</span>
                           <span>${equipmentCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      {quoteResult.breakdown.competitorAdjustment && quoteResult.breakdown.competitorAdjustment !== 0 && (
+                        <div className="flex justify-between text-gray-600">
+                          <span>Competitor Adjustment:</span>
+                          <span>${quoteResult.breakdown.competitorAdjustment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       <div className="flex justify-between font-semibold pt-2 border-t">
