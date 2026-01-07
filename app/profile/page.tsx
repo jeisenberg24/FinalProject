@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,54 +11,21 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { ArrowLeft, Crown, Check } from "lucide-react";
-import { Subscription } from "@/types/models";
 
 export default function ProfilePage() {
   const { user, isLoggedIn } = useAuth();
+  const { subscription, isLoading: isLoadingSubscription } = useSubscription(user?.id);
   const { toast } = useToast();
   const [companyName, setCompanyName] = useState(user?.company_name || "");
   const [experienceLevel, setExperienceLevel] = useState(user?.experience_level || "Intermediate");
   const [isSaving, setIsSaving] = useState(false);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Fetch subscription data
-  useEffect(() => {
-    const fetchSubscription = async () => {
-      if (!isLoggedIn || !user) {
-        setIsLoadingSubscription(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("subscriptions")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        if (error && error.code !== "PGRST116") {
-          // PGRST116 is "no rows returned", which is fine
-          console.error("Error fetching subscription:", error);
-        } else if (data) {
-          setSubscription(data);
-        }
-      } catch (error) {
-        console.error("Error fetching subscription:", error);
-      } finally {
-        setIsLoadingSubscription(false);
-      }
-    };
-
-    fetchSubscription();
-  }, [isLoggedIn, user, supabase]);
-
-  // Handle success/cancel query parameters
+  // Handle success/cancel query parameters and poll for subscription update
   useEffect(() => {
     if (typeof window === "undefined") return;
     
@@ -66,22 +34,45 @@ export default function ProfilePage() {
       toast({
         variant: "success",
         title: "Payment successful!",
-        description: "Your subscription has been activated. Welcome to Pro!",
+        description: "Your subscription is being activated. Please wait a moment...",
       });
-      // Refresh subscription data
-      const fetchSubscription = async () => {
+      
+      // Poll for subscription update (webhook may take a few seconds)
+      let pollCount = 0;
+      const maxPolls = 10; // Poll for up to 10 seconds
+      const pollInterval = setInterval(async () => {
+        pollCount++;
         if (user) {
           const { data } = await supabase
             .from("subscriptions")
             .select("*")
             .eq("user_id", user.id)
             .single();
-          if (data) setSubscription(data);
+          
+          if (data && data.tier === "pro" && data.status === "active") {
+            clearInterval(pollInterval);
+            toast({
+              variant: "success",
+              title: "Subscription Activated!",
+              description: "Welcome to Pro! Your premium features are now available.",
+            });
+            // Force a page refresh to update the UI
+            window.location.reload();
+          } else if (pollCount >= maxPolls) {
+            clearInterval(pollInterval);
+            toast({
+              variant: "default",
+              title: "Processing...",
+              description: "Your subscription is being processed. Please refresh the page in a moment.",
+            });
+          }
         }
-      };
-      fetchSubscription();
+      }, 1000); // Poll every second
+      
       // Clean up URL
       window.history.replaceState({}, "", "/profile");
+      
+      return () => clearInterval(pollInterval);
     } else if (params.get("canceled") === "true") {
       toast({
         variant: "default",

@@ -3,22 +3,28 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { createBrowserClient } from "@supabase/ssr";
 import { Quote } from "@/types/models";
 import { QuoteDisplay } from "@/components/QuoteDisplay";
 import { QuoteInput } from "@/lib/calculations";
 import { calculateQuote } from "@/lib/calculations";
+import { generateQuotePDF } from "@/lib/pdfExport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function QuoteDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoggedIn, isLoading: authLoading } = useAuth();
+  const { isPro, isLoading: subscriptionLoading } = useSubscription(user?.id);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const { toast } = useToast();
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -52,8 +58,26 @@ export default function QuoteDetailPage() {
       }
     };
 
+    const fetchCompanyName = async () => {
+      if (user) {
+        try {
+          const { data } = await supabase
+            .from("profiles")
+            .select("company_name")
+            .eq("user_id", user.id)
+            .single();
+          if (data?.company_name) {
+            setCompanyName(data.company_name);
+          }
+        } catch (error) {
+          console.error("Error fetching company name:", error);
+        }
+      }
+    };
+
     fetchQuote();
-  }, [params.id, isLoggedIn, user, authLoading]);
+    fetchCompanyName();
+  }, [params.id, isLoggedIn, user, authLoading, supabase]);
 
   if (!isLoggedIn) {
     return <div>Please log in to view this quote.</div>;
@@ -85,21 +109,64 @@ export default function QuoteDetailPage() {
 
   const quoteResult = calculateQuote(input);
 
+  const handleExportPDF = () => {
+    if (!isPro) {
+      toast({
+        variant: "destructive",
+        title: "Premium Feature",
+        description: "Please upgrade to Pro to export quotes as PDF.",
+      });
+      router.push("/profile");
+      return;
+    }
+
+    try {
+      const doc = generateQuotePDF(quoteResult, input, companyName || undefined);
+      const fileName = `quote-${quote.service_type.replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.pdf`;
+      doc.save(fileName);
+      toast({
+        variant: "success",
+        title: "PDF Exported",
+        description: "Your quote has been exported as a PDF.",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "Failed to generate PDF. Please try again.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/quotes">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Quotes
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Quote Details</h1>
-          <p className="text-muted-foreground">
-            Created: {new Date(quote.created_at).toLocaleString()}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/quotes">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Quotes
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Quote Details</h1>
+            <p className="text-muted-foreground">
+              Created: {new Date(quote.created_at).toLocaleString()}
+            </p>
+          </div>
         </div>
+        {!subscriptionLoading && (
+          <Button
+            onClick={handleExportPDF}
+            variant={isPro ? "default" : "outline"}
+            size="sm"
+            className={isPro ? "" : "opacity-60"}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {isPro ? "Export PDF" : "Export PDF (Pro)"}
+          </Button>
+        )}
       </div>
 
       <QuoteDisplay quote={quoteResult} input={input} />

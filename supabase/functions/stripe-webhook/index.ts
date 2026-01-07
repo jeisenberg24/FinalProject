@@ -43,7 +43,8 @@ Deno.serve(async (req) => {
 
         // Get subscription details
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const tier = subscription.items.data[0].price.metadata.tier || "premium";
+        // Get tier from session metadata (set during checkout) or default to "pro"
+        const tier = session.metadata?.tier || subscription.items.data[0].price.metadata?.tier || "pro";
 
         // Find user by customer ID
         const { data: profile } = await supabase
