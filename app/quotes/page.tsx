@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/calculations";
 import Link from "next/link";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, ArrowLeft } from "lucide-react";
 
 export default function QuotesPage() {
   const { user, isLoggedIn, isLoading: authLoading, session } = useAuth();
@@ -94,19 +94,27 @@ export default function QuotesPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Quotes</h1>
-              <p className="text-gray-600">
-                View and manage all your saved quotes
-              </p>
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">My Quotes</h1>
+                <p className="text-gray-600">
+                  View and manage all your saved quotes
+                </p>
+              </div>
             </div>
-        <Link href="/quote/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Quote
-          </Button>
-        </Link>
-      </div>
+            <Link href="/quote/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Quote
+              </Button>
+            </Link>
+          </div>
 
       {error && (
         <Card className="border-red-200 bg-red-50">

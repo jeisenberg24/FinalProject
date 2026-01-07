@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { createBrowserClient } from "@supabase/ssr";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
   const { user, isLoggedIn } = useAuth();
+  const { toast } = useToast();
   const [companyName, setCompanyName] = useState(user?.company_name || "");
   const [experienceLevel, setExperienceLevel] = useState(user?.experience_level || "Intermediate");
   const [isSaving, setIsSaving] = useState(false);
@@ -33,10 +35,18 @@ export default function ProfilePage() {
         });
 
       if (error) throw error;
-      alert("Profile updated successfully!");
+      toast({
+        variant: "success",
+        title: "Profile updated",
+        description: "Your profile has been saved successfully.",
+      });
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      alert("Failed to update profile: " + error.message);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+      });
     } finally {
       setIsSaving(false);
     }
