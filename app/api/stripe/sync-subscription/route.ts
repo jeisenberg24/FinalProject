@@ -70,14 +70,79 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get user's Stripe customer ID
+    // Get user's profile and check for existing subscription
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("stripe_customer_id")
       .eq("user_id", userId)
       .single();
 
-    if (profileError || !profile?.stripe_customer_id) {
+    let customerId: string | null = profile?.stripe_customer_id || null;
+
+    // If no customer ID in profile, try to find it from existing subscription
+    if (!customerId) {
+      const { data: existingSub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("stripe_customer_id")
+        .eq("user_id", userId)
+        .single();
+
+      if (existingSub?.stripe_customer_id) {
+        customerId = existingSub.stripe_customer_id;
+        // Update profile with the customer ID for future use
+        await supabaseAdmin
+          .from("profiles")
+          .update({ stripe_customer_id: customerId })
+          .eq("user_id", userId);
+      }
+    }
+
+    // If still no customer ID, try to find customer in Stripe by email
+    if (!customerId && user.email) {
+      try {
+        const customers = await stripe.customers.list({
+          email: user.email,
+          limit: 1,
+        });
+
+        if (customers.data.length > 0) {
+          customerId = customers.data[0].id;
+          // Save to profile for future use
+          await supabaseAdmin
+            .from("profiles")
+            .update({ stripe_customer_id: customerId })
+            .eq("user_id", userId);
+        }
+      } catch (error) {
+        console.error("Error searching for customer by email:", error);
+      }
+    }
+
+    // If still no customer ID, try searching by user ID in metadata
+    if (!customerId) {
+      try {
+        const customers = await stripe.customers.list({
+          limit: 100,
+        });
+
+        const customerWithUserId = customers.data.find(
+          (c) => c.metadata?.userId === userId
+        );
+
+        if (customerWithUserId) {
+          customerId = customerWithUserId.id;
+          // Save to profile for future use
+          await supabaseAdmin
+            .from("profiles")
+            .update({ stripe_customer_id: customerId })
+            .eq("user_id", userId);
+        }
+      } catch (error) {
+        console.error("Error searching for customer by metadata:", error);
+      }
+    }
+
+    if (!customerId) {
       return NextResponse.json(
         { error: "No Stripe customer found. Please complete a checkout first." },
         { status: 404 }
@@ -86,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     // Get all subscriptions for this customer from Stripe
     const subscriptions = await stripe.subscriptions.list({
-      customer: profile.stripe_customer_id,
+      customer: customerId,
       status: "all",
       limit: 10,
     });
@@ -134,7 +199,7 @@ export async function POST(request: NextRequest) {
       .upsert({
         user_id: userId,
         stripe_subscription_id: activeSubscription.id,
-        stripe_customer_id: profile.stripe_customer_id,
+        stripe_customer_id: customerId,
         status: activeSubscription.status,
         tier: tier,
         current_period_end: new Date(activeSubscription.current_period_end * 1000).toISOString(),

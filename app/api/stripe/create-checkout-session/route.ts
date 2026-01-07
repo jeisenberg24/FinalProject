@@ -122,11 +122,20 @@ export async function POST(request: NextRequest) {
       });
       customerId = customer.id;
 
-      // Save customer ID to profile
-      await supabaseAdmin
+      // Save customer ID to profile (use upsert to ensure profile exists)
+      const { error: profileUpdateError } = await supabaseAdmin
         .from("profiles")
-        .update({ stripe_customer_id: customerId })
-        .eq("user_id", userId);
+        .upsert({
+          user_id: userId,
+          stripe_customer_id: customerId,
+        }, {
+          onConflict: "user_id"
+        });
+
+      if (profileUpdateError) {
+        console.error("Error saving customer ID to profile:", profileUpdateError);
+        // Continue anyway - the customer ID will be found via sync
+      }
     }
 
     // Create checkout session
