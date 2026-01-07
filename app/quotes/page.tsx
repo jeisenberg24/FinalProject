@@ -11,9 +11,10 @@ import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 
 export default function QuotesPage() {
-  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading, session } = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -31,23 +32,54 @@ export default function QuotesPage() {
 
     const fetchQuotes = async () => {
       try {
+        // Get the current session to ensure it's available
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Error getting session:", sessionError);
+          throw new Error("Failed to get session: " + sessionError.message);
+        }
+
+        if (!currentSession) {
+          throw new Error("No active session. Please log in again.");
+        }
+
+        console.log("Session available, user ID:", currentSession.user.id);
+        console.log("Fetching quotes for user:", user.id);
+
         const { data, error } = await supabase
           .from("quotes")
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase error fetching quotes:", error);
+          console.error("Error details:", {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          });
+          setError(error.message);
+          throw error;
+        }
+        
+        console.log("Quotes fetched successfully:", data?.length || 0, "quotes");
         setQuotes(data || []);
-      } catch (error) {
+        setError(null);
+      } catch (error: any) {
         console.error("Error fetching quotes:", error);
+        setError(error.message || "Failed to load quotes");
+        // Set empty array on error so UI doesn't stay in loading state
+        setQuotes([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchQuotes();
-  }, [isLoggedIn, user, authLoading]);
+  }, [isLoggedIn, user, authLoading, session]);
 
   if (!isLoggedIn) {
     return <div>Please log in to view your quotes.</div>;
@@ -74,11 +106,21 @@ export default function QuotesPage() {
         </Link>
       </div>
 
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-4">
+            <p className="text-red-800 text-sm">Error: {error}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {quotes.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">No quotes yet</p>
+            <p className="text-muted-foreground mb-4">
+              {error ? "Failed to load quotes" : "No quotes yet"}
+            </p>
             <Link href="/quote/new">
               <Button>Create Your First Quote</Button>
             </Link>
