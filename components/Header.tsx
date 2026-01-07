@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { UserCircle, Calculator } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
