@@ -1,0 +1,127 @@
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2023-10-16",
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get authenticated user from session
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            try {
+              cookieStore.set({ name, value, ...options });
+            } catch (error) {
+              // Ignore cookie setting errors in API routes
+            }
+          },
+          remove(name: string, options: any) {
+            try {
+              cookieStore.set({ name, value: "", ...options });
+            } catch (error) {
+              // Ignore cookie removal errors in API routes
+            }
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in." },
+        { status: 401 }
+      );
+    }
+
+    const userId = user.id;
+    const userEmail = user.email;
+
+    if (!userEmail) {
+      return NextResponse.json(
+        { error: "User email not found" },
+        { status: 400 }
+      );
+    }
+
+    // Use service role client for admin operations
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Get or create Stripe customer
+    let customerId: string;
+    
+    // Check if user already has a Stripe customer ID in their profile
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("user_id", userId)
+      .single();
+
+    if (profile?.stripe_customer_id) {
+      customerId = profile.stripe_customer_id;
+    } else {
+      // Create a new Stripe customer
+      const customer = await stripe.customers.create({
+        email: userEmail,
+        metadata: {
+          userId: userId,
+        },
+      });
+      customerId = customer.id;
+
+      // Save customer ID to profile
+      await supabaseAdmin
+        .from("profiles")
+        .update({ stripe_customer_id: customerId })
+        .eq("user_id", userId);
+    }
+
+    // Create checkout session
+    // Note: You'll need to create a price in Stripe Dashboard and set the price ID
+    // For now, using a placeholder - replace with your actual price ID
+    const priceId = process.env.STRIPE_PRO_PRICE_ID || "price_placeholder";
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: "subscription",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/profile?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/profile?canceled=true`,
+      metadata: {
+        userId: userId,
+        tier: "pro",
+      },
+    });
+
+    return NextResponse.json({ sessionId: session.id, url: session.url });
+  } catch (error: any) {
+    console.error("Error creating checkout session:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create checkout session" },
+      { status: 500 }
+    );
+  }
+}
+

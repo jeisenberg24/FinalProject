@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { createBrowserClient } from "@supabase/ssr";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Crown, Check } from "lucide-react";
+import { Subscription } from "@/types/models";
 
 export default function ProfilePage() {
   const { user, isLoggedIn } = useAuth();
@@ -17,10 +18,121 @@ export default function ProfilePage() {
   const [companyName, setCompanyName] = useState(user?.company_name || "");
   const [experienceLevel, setExperienceLevel] = useState(user?.experience_level || "Intermediate");
   const [isSaving, setIsSaving] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  // Fetch subscription data
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      if (!isLoggedIn || !user) {
+        setIsLoadingSubscription(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error && error.code !== "PGRST116") {
+          // PGRST116 is "no rows returned", which is fine
+          console.error("Error fetching subscription:", error);
+        } else if (data) {
+          setSubscription(data);
+        }
+      } catch (error) {
+        console.error("Error fetching subscription:", error);
+      } finally {
+        setIsLoadingSubscription(false);
+      }
+    };
+
+    fetchSubscription();
+  }, [isLoggedIn, user, supabase]);
+
+  // Handle success/cancel query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "true") {
+      toast({
+        variant: "success",
+        title: "Payment successful!",
+        description: "Your subscription has been activated. Welcome to Pro!",
+      });
+      // Refresh subscription data
+      const fetchSubscription = async () => {
+        if (user) {
+          const { data } = await supabase
+            .from("subscriptions")
+            .select("*")
+            .eq("user_id", user.id)
+            .single();
+          if (data) setSubscription(data);
+        }
+      };
+      fetchSubscription();
+      // Clean up URL
+      window.history.replaceState({}, "", "/profile");
+    } else if (params.get("canceled") === "true") {
+      toast({
+        variant: "default",
+        title: "Payment canceled",
+        description: "You can upgrade anytime from your profile.",
+      });
+      // Clean up URL
+      window.history.replaceState({}, "", "/profile");
+    }
+  }, [user, supabase, toast]);
+
+  // Handle upgrade to Pro
+  const handleUpgrade = async () => {
+    if (!isLoggedIn || !user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please log in to upgrade your account.",
+      });
+      return;
+    }
+
+    setIsLoadingCheckout(true);
+    try {
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error: any) {
+      console.error("Error creating checkout session:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to start checkout process. Please try again.",
+      });
+      setIsLoadingCheckout(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!isLoggedIn || !user) return;
@@ -116,6 +228,91 @@ export default function ProfilePage() {
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-md border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-card-foreground flex items-center gap-2">
+            <Crown className="w-5 h-5 text-primary" />
+            Subscription & Billing
+          </CardTitle>
+          <CardDescription>Manage your subscription plan</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoadingSubscription ? (
+            <div className="text-muted-foreground">Loading subscription status...</div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label className="font-medium">Current Plan</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold capitalize">
+                    {subscription?.tier || "Free"}
+                  </span>
+                  {subscription?.status === "active" && subscription?.tier !== "free" && (
+                    <span className="px-2 py-1 text-xs bg-green-500/20 text-green-600 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+                {subscription?.current_period_end && (
+                  <p className="text-sm text-muted-foreground">
+                    {subscription.tier !== "free" 
+                      ? `Renews on ${new Date(subscription.current_period_end).toLocaleDateString()}`
+                      : "No active subscription"}
+                  </p>
+                )}
+              </div>
+
+              {(subscription?.tier === "free" || !subscription) && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Upgrade to Pro</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Unlock advanced features and get the most out of our platform.
+                    </p>
+                    <ul className="space-y-2 mb-4">
+                      <li className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary" />
+                        Unlimited quote calculations
+                      </li>
+                      <li className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary" />
+                        Advanced AI recommendations
+                      </li>
+                      <li className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary" />
+                        Priority support
+                      </li>
+                      <li className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary" />
+                        Export quotes to PDF
+                      </li>
+                    </ul>
+                    <Button
+                      onClick={handleUpgrade}
+                      disabled={isLoadingCheckout}
+                      className="w-full bg-primary hover:bg-primary/90"
+                    >
+                      {isLoadingCheckout ? "Processing..." : "Upgrade to Pro"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {subscription?.tier === "pro" && subscription?.status === "active" && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    You're currently on the Pro plan. Thank you for your subscription!
+                  </p>
+                  <Button variant="outline" className="w-full" disabled>
+                    Manage Subscription
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
         </div>
