@@ -25,7 +25,7 @@ export default function ProfilePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Handle success/cancel query parameters and poll for subscription update
+  // Handle success/cancel query parameters and sync subscription immediately
   useEffect(() => {
     if (typeof window === "undefined") return;
     
@@ -34,50 +34,103 @@ export default function ProfilePage() {
       toast({
         variant: "success",
         title: "Payment successful!",
-        description: "Your subscription is being activated. Please wait a moment...",
+        description: "Activating your subscription...",
       });
       
-      // Poll for subscription update (webhook may take a few seconds)
-      let pollCount = 0;
-      const maxPolls = 20; // Poll for up to 20 seconds (webhooks can take time)
-      const pollInterval = setInterval(async () => {
-        pollCount++;
-        if (user) {
-          // Refetch subscription data
-          await refetchSubscription();
-          
-          // Check if subscription was updated
-          const { data } = await supabase
-            .from("subscriptions")
-            .select("*")
-            .eq("user_id", user.id)
-            .single();
-          
-          // Accept both "active" and "trialing" as valid subscription statuses
-          if (data && data.tier === "pro" && (data.status === "active" || data.status === "trialing")) {
-            clearInterval(pollInterval);
+      // Immediately sync subscription from Stripe (bypasses webhook delay)
+      const syncSubscription = async () => {
+        try {
+          const response = await fetch("/api/stripe/sync-subscription", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.subscription) {
+            // Subscription synced successfully
+            await refetchSubscription();
             toast({
               variant: "success",
               title: "Subscription Activated!",
               description: "Welcome to Pro! Your premium features are now available.",
             });
-            // Refetch to update the UI immediately
-            await refetchSubscription();
-          } else if (pollCount >= maxPolls) {
-            clearInterval(pollInterval);
-            toast({
-              variant: "default",
-              title: "Processing...",
-              description: "Your subscription is being processed. If it doesn't update soon, please refresh the page or contact support.",
-            });
+          } else {
+            // If sync fails, try polling as fallback
+            console.log("Sync failed, falling back to polling:", data);
+            pollForSubscription();
           }
+        } catch (error) {
+          console.error("Error syncing subscription:", error);
+          // Fall back to polling
+          pollForSubscription();
         }
-      }, 1000); // Poll every second
+      };
+
+      // Fallback polling function (in case sync doesn't work immediately)
+      const pollForSubscription = () => {
+        let pollCount = 0;
+        const maxPolls = 10; // Poll for up to 10 seconds
+        const pollInterval = setInterval(async () => {
+          pollCount++;
+          if (user) {
+            // Try syncing again
+            try {
+              const response = await fetch("/api/stripe/sync-subscription", {
+                method: "POST",
+              });
+              const data = await response.json();
+              
+              if (response.ok && data.subscription) {
+                clearInterval(pollInterval);
+                await refetchSubscription();
+                toast({
+                  variant: "success",
+                  title: "Subscription Activated!",
+                  description: "Welcome to Pro! Your premium features are now available.",
+                });
+                return;
+              }
+            } catch (error) {
+              console.error("Poll sync error:", error);
+            }
+
+            // Also check database directly
+            await refetchSubscription();
+            const { data } = await supabase
+              .from("subscriptions")
+              .select("*")
+              .eq("user_id", user.id)
+              .single();
+            
+            if (data && data.tier === "pro" && (data.status === "active" || data.status === "trialing")) {
+              clearInterval(pollInterval);
+              toast({
+                variant: "success",
+                title: "Subscription Activated!",
+                description: "Welcome to Pro! Your premium features are now available.",
+              });
+            } else if (pollCount >= maxPolls) {
+              clearInterval(pollInterval);
+              toast({
+                variant: "default",
+                title: "Processing...",
+                description: "Your subscription is being processed. Please refresh the page in a moment or click 'Refresh Subscription Status'.",
+              });
+            }
+          }
+        }, 1000);
+        
+        return () => clearInterval(pollInterval);
+      };
+
+      // Start sync immediately
+      syncSubscription();
       
       // Clean up URL
       window.history.replaceState({}, "", "/profile");
-      
-      return () => clearInterval(pollInterval);
     } else if (params.get("canceled") === "true") {
       toast({
         variant: "default",
@@ -176,18 +229,40 @@ export default function ProfilePage() {
     if (!user) return;
     
     try {
-      await refetchSubscription();
-      toast({
-        variant: "success",
-        title: "Subscription refreshed",
-        description: "Your subscription status has been updated.",
+      // Call sync endpoint to get latest from Stripe
+      const response = await fetch("/api/stripe/sync-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await refetchSubscription();
+        if (data.subscription) {
+          toast({
+            variant: "success",
+            title: "Subscription refreshed",
+            description: "Your subscription status has been updated.",
+          });
+        } else {
+          toast({
+            variant: "default",
+            title: "No active subscription",
+            description: "No active subscription found in Stripe.",
+          });
+        }
+      } else {
+        throw new Error(data.error || "Failed to sync subscription");
+      }
     } catch (error: any) {
       console.error("Error refreshing subscription:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to refresh subscription. Please try again.",
+        description: error.message || "Failed to refresh subscription. Please try again.",
       });
     }
   };
@@ -328,12 +403,19 @@ export default function ProfilePage() {
               )}
 
               {subscription?.tier === "pro" && (subscription?.status === "active" || subscription?.status === "trialing") && (
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t space-y-2">
                   <p className="text-sm text-muted-foreground mb-2">
                     You&apos;re currently on the Pro plan. Thank you for your subscription!
                   </p>
                   <Button variant="outline" className="w-full" disabled>
                     Manage Subscription
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleRefreshSubscription}
+                    className="w-full text-sm"
+                  >
+                    Refresh Subscription Status
                   </Button>
                 </div>
               )}
