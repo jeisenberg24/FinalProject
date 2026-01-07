@@ -29,17 +29,57 @@ export function useAuth(): UseAuthReturn {
         .eq("user_id", userId)
         .single();
 
-      if (profileError && profileError.code !== "PGRST116") {
-        throw profileError;
-      }
+      // If profile doesn't exist, create it
+      if (profileError && profileError.code === "PGRST116") {
+        const { error: createError } = await supabase
+          .from("profiles")
+          .insert({
+            user_id: userId,
+            experience_level: "Intermediate",
+          });
 
+        if (createError) {
+          console.error("Error creating profile:", createError);
+          // Still set user with basic info even if profile creation fails
+          setUser({
+            id: userId,
+            email: userEmail,
+          });
+        } else {
+          // Profile created, fetch it again
+          const { data: newProfile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("user_id", userId)
+            .single();
+
+          setUser({
+            ...newProfile,
+            id: userId,
+            email: userEmail,
+          });
+        }
+      } else if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        // Set user with basic info even if profile fetch fails
+        setUser({
+          id: userId,
+          email: userEmail,
+        });
+      } else {
+        setUser({
+          ...data,
+          id: userId,
+          email: userEmail,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      // Set user with basic info on error
       setUser({
-        ...data,
         id: userId,
         email: userEmail,
       });
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
     } finally {
       setIsLoading(false);
     }

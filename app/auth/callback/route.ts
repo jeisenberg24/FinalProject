@@ -39,7 +39,33 @@ export async function GET(request: Request) {
       }
     );
 
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (error) {
+      console.error("Error exchanging code for session:", error);
+      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
+    }
+
+    // Ensure profile exists after OAuth login
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Check if profile exists, create if not
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile) {
+        // Profile doesn't exist, create it
+        await supabase
+          .from("profiles")
+          .insert({
+            user_id: user.id,
+            experience_level: "Intermediate",
+          });
+      }
+    }
   }
 
   // URL to redirect to after sign in process completes

@@ -44,11 +44,16 @@ export default function Home() {
   const [serviceType, setServiceType] = useState<string>("");
   const [location, setLocation] = useState<string>("");
 
-  // Redirect to login if not logged in
+  // Redirect to login if not logged in - but wait a bit for OAuth callback to complete
   useEffect(() => {
-    if (!authLoading && !isLoggedIn) {
-      router.push("/login");
-    }
+    // Give OAuth callback time to complete (2 seconds)
+    const timer = setTimeout(() => {
+      if (!authLoading && !isLoggedIn) {
+        router.push("/login");
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, [isLoggedIn, authLoading, router]);
 
   // Calculate quote when inputs change

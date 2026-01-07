@@ -20,7 +20,19 @@ export default function NewQuotePage() {
       return;
     }
 
+    // Ensure we have a user ID
+    if (!user.id) {
+      alert("User session not properly initialized. Please log out and log back in.");
+      return;
+    }
+
     try {
+      // Get current session to ensure auth is set
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (!session || sessionError) {
+        throw new Error("No active session. Please log in again.");
+      }
+
       // Ensure profile exists before inserting quote
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -38,18 +50,16 @@ export default function NewQuotePage() {
           });
 
         if (createProfileError) {
+          console.error("Profile creation error:", createProfileError);
           throw new Error(`Failed to create profile: ${createProfileError.message}`);
         }
       } else if (profileError) {
+        console.error("Profile check error:", profileError);
         throw new Error(`Failed to check profile: ${profileError.message}`);
       }
 
-      // Get current session to ensure auth is set
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("No active session. Please log in again.");
-      }
-
+      console.log("Inserting quote with user_id:", user.id);
+      
       const { data, error } = await supabase
         .from("quotes")
         .insert({
@@ -77,12 +87,20 @@ export default function NewQuotePage() {
 
       if (error) {
         console.error("Quote insert error:", error);
+        console.error("Error details:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
         throw error;
       }
 
       if (!data) {
         throw new Error("Quote was created but no data was returned");
       }
+
+      console.log("Quote created successfully:", data.id);
 
       // Create history entry (non-blocking - don't fail if this fails)
       const { error: historyError } = await supabase.from("quote_history").insert({
@@ -99,7 +117,7 @@ export default function NewQuotePage() {
       router.push(`/quotes/${data.id}`);
     } catch (error: any) {
       console.error("Error saving quote:", error);
-      alert("Failed to save quote: " + (error.message || "Unknown error"));
+      alert("Failed to save quote: " + (error.message || "Unknown error") + "\n\nCheck the browser console for more details.");
     }
   };
 
