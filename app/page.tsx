@@ -20,9 +20,11 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Calculator, LogIn } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const { isLoggedIn, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [quoteResult, setQuoteResult] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -41,6 +43,13 @@ export default function Home() {
   const [isEmergency, setIsEmergency] = useState<boolean>(false);
   const [serviceType, setServiceType] = useState<string>("");
   const [location, setLocation] = useState<string>("");
+
+  // Redirect to login if not logged in
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.push("/login");
+    }
+  }, [isLoggedIn, authLoading, router]);
 
   // Calculate quote when inputs change
   useEffect(() => {
@@ -99,6 +108,11 @@ export default function Home() {
   };
 
   if (authLoading) {
+    return <div className="text-center py-12">Loading...</div>;
+  }
+
+  // Don't render calculator if not logged in (will redirect)
+  if (!isLoggedIn) {
     return <div className="text-center py-12">Loading...</div>;
   }
 

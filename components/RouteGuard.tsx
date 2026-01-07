@@ -5,8 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LoadingSkeleton } from "./LoadingSkeleton";
 
-const PUBLIC_ROUTES = ["/", "/login"];
-const PROTECTED_ROUTES = ["/quotes", "/dashboard", "/profile", "/quote/new"];
+const PUBLIC_ROUTES = ["/login"];
+const PROTECTED_ROUTES = ["/", "/quotes", "/dashboard", "/profile", "/quote/new"];
 
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, isLoading } = useAuth();
@@ -26,7 +26,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Allow everyone (logged in or not) to access public routes like homepage (/)
+    // Allow everyone (logged in or not) to access public routes like login
     // Allow logged-in users to access protected routes
     setIsReady(true);
   }, [isLoggedIn, isLoading, pathname, router]);
