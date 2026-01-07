@@ -131,14 +131,23 @@ export function useAuth(): UseAuthReturn {
 
   const handleGoogleLogin = async () => {
     try {
-      await supabase.auth.signInWithOAuth({
+      // Use just the base callback URL - Supabase is strict about URL format
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/`,
+          redirectTo: redirectUrl,
         },
       });
+      
+      if (oauthError) {
+        setError(oauthError.message);
+        console.error("Error with Google login:", oauthError);
+      }
+      // Note: signInWithOAuth will automatically redirect the browser if successful
+      // If it doesn't redirect, check Supabase dashboard for redirect URL configuration
     } catch (error: any) {
-      setError(error.message);
+      setError(error.message || "Failed to initiate Google sign-in");
       console.error("Error with Google login:", error);
     }
   };

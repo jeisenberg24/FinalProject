@@ -1,16 +1,14 @@
 "use client";
 
-import LoginForm from "@/components/LoginForm";
-import { Card, CardContent } from "@/components/ui/card";
-import { Calculator } from "lucide-react";
-import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function LoginPage() {
   const { isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
+  const hasRedirected = useRef(false);
 
   // Redirect to homepage if already logged in
   useEffect(() => {
@@ -19,29 +17,38 @@ export default function LoginPage() {
     }
   }, [isLoggedIn, isLoading, router]);
 
-  if (isLoading || isLoggedIn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center">Loading...</div>
-      </div>
-    );
-  }
+  // Automatically redirect to Google sign-in immediately on page load
+  useEffect(() => {
+    // Only redirect if we haven't already and we're not logged in
+    if (!hasRedirected.current && !isLoggedIn) {
+      hasRedirected.current = true;
+      
+      // Create supabase client directly for immediate redirect
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      
+      // Trigger OAuth redirect immediately
+      supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      }).catch((error) => {
+        console.error("Error initiating Google sign-in:", error);
+        // If redirect fails, allow fallback to login form
+        hasRedirected.current = false;
+      });
+    }
+  }, [isLoggedIn]);
 
+  // Show minimal loading state while redirecting
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3 mb-4">
-            <Calculator className="w-10 h-10 text-primary p-2 rounded-lg shadow-lg" />
-            <h1 className="text-3xl font-bold text-primary">Service Quote Calculator</h1>
-          </Link>
-          <p className="text-muted-foreground text-lg">Sign in to access your quotes</p>
-        </div>
-        <Card className="shadow-xl">
-          <CardContent className="p-8">
-            <LoginForm />
-          </CardContent>
-        </Card>
+      <div className="text-center">
+        <div className="text-lg mb-2">Redirecting to Google sign-in...</div>
+        <div className="text-sm text-muted-foreground">Please wait</div>
       </div>
     </div>
   );
